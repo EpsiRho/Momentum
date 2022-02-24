@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "IndexerTestWASDK (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "IndexerTestWASDK (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
