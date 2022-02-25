@@ -14,7 +14,7 @@ Thread.Sleep(200);
 Console.WriteLine($"> Complete, Hit Enter to continue <");
 Console.ReadLine();
 
-//return;
+return;
 
 Stopwatch stopwatch = Stopwatch.StartNew();
 Console.WriteLine("[-] Loading Index File:");
@@ -27,7 +27,31 @@ Console.ReadLine();
 
 Console.Clear();
 
-string input = "";
+string input = Console.ReadLine();
+stopwatch.Reset();
+stopwatch.Start();
+var lst = files.Where(o => o.Key.Contains(input)).ToList();
+
+for (int i = 0; i < 15; i++)
+{
+    try
+    {
+        foreach (var line in lst[i].Value)
+        {
+            Console.WriteLine($"{lst[i].Key}");
+        }
+    }
+    catch (Exception)
+    {
+
+    }
+}
+
+stopwatch.Stop();
+Console.WriteLine(Display.watch.Elapsed.ToString());
+
+return;
+
 while (true)
 {
     Console.Write($"> {input} ");
@@ -48,7 +72,7 @@ while (true)
     else if (key.Key == ConsoleKey.Enter)
     {
         Console.WriteLine("\n----------------------");
-        var lst = files.Where(o => o.Key.Contains(input)).ToList();
+        //var lst = files.Where(o => o.Key.Contains(input)).ToList();
         foreach (var file in lst)
         {
             foreach (var line in file.Value)

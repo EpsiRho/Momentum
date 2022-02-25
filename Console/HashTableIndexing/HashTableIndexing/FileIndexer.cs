@@ -12,8 +12,12 @@ namespace HashTableIndexing
     {
         public static void IndexFiles()
         {
-            var dictionary = SearchDirectory("C:\\Users\\jhset\\Pictures");
+            var dictionary = SearchDirectory("C:\\");
             Display.Message = "Saving to File";
+            Display.watch.Stop();
+            Console.ReadLine();
+            Display.watch.Reset();
+            Display.watch.Start();
             SaveIndexesToFile(dictionary);
         }
 

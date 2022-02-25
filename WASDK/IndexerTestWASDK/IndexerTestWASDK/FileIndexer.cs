@@ -152,6 +152,8 @@ namespace IndexerTestWASDK
 
         public static async void LoadIndexesFromFile()
         {
+            Stopwatch sw = new Stopwatch();
+            sw.Start();
             try
             {
                 IsFullyLoaded = false;
@@ -164,8 +166,7 @@ namespace IndexerTestWASDK
                     System.IO.Directory.CreateDirectory($"{p}\\Momentum");
                 }
 
-                var file = await StorageFile.GetFileFromPathAsync($"{p}\\Momentum\\Index.json");
-                StreamReader sr = File.OpenText(file.Path);
+                StreamReader sr = File.OpenText($"{p}\\Momentum\\Index.json");
                 //string text = await FileIO.ReadTextAsync(file);
 
                 JsonTextReader reader = new JsonTextReader(sr);
@@ -207,6 +208,7 @@ namespace IndexerTestWASDK
                         }
                     }
                 }
+                sw.Stop();
                 IsFullyLoaded = true;
 
                 //var obj = JsonReader .DeserializeObject<Dictionary<string, List<IndexedFileInfo>>>(text);
