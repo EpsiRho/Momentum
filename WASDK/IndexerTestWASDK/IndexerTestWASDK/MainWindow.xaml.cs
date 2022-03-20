@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Navigation;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -17,13 +18,15 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.Storage;
 using Windows.Storage.FileProperties;
 using CommunityToolkit.WinUI;
 using Microsoft.UI.Xaml.Media.Imaging;
-using WinRT;
+using Microsoft.Win32;
+using Windows.Storage.Streams;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -43,6 +46,7 @@ namespace IndexerTestWASDK
         Thread TimerThread;
         int TimeTillSearch;
         private bool NeedsStop;
+        private IndexedFileInfo RightClickedItem;
 
         public MainWindow()
         {
@@ -91,7 +95,28 @@ namespace IndexerTestWASDK
         {
             while (!FileIndexer.IsFullyLoaded)
             {
+                if (FileIndexer.Files.Count() == 200)
+                {
+                    TimerThread = new Thread(() =>
+                    {
+                        try
+                        {
+                            //while (TimeTillSearch > 0)
+                            //{
+                            //    TimeTillSearch--;
+                            //    Thread.Sleep(200);
+                            //}
+                            NeedsStop = false;
+                            Search();
+                            TimerThread = null;
+                        }
+                        catch (Exception)
+                        {
 
+                        }
+                    });
+                    TimerThread.Start();
+                }
             }
             this.DispatcherQueue.TryEnqueue(() =>
             {
@@ -134,11 +159,6 @@ namespace IndexerTestWASDK
                 //TimeTillSearch = 3;
                 //if (TimerThread == null)
                 //{
-                if (SearchBox.Text == "")
-                {
-                    collection.Clear();
-                    return;
-                }
                 NeedsStop = true;
                 if (TimerThread != null)
                 {
@@ -193,14 +213,22 @@ namespace IndexerTestWASDK
                     }
                 }
 
-                if (text == "")
+                int count = 0;
+                var exact = FileIndexer.Files.ContainsKey(text);
+                if (exact)
                 {
-                    NeedsStop = false;
-                    return;
+                    foreach (var line in FileIndexer.Files[text])
+                    {
+                        await DispatcherQueue.EnqueueAsync(() =>
+                        {
+                            collection.Add(new IndexedFileInfo() { Name = line.Name, Path = line.Path, Type = line.Type });
+                        });
+                        count++;
+                    }
                 }
 
                 var list = FileIndexer.Files.Where(o => o.Key.Contains(text)).ToList();
-                for (int i = 0; i < 100; i++)
+                for (int i = count; i < 200; i++)
                 {
                     if (NeedsStop)
                     {
@@ -209,11 +237,15 @@ namespace IndexerTestWASDK
                     }
                     try
                     {
+                        if (list[i].Key == text)
+                        {
+                            continue;
+                        }
                         foreach (var line in list[i].Value)
                         {
                             await DispatcherQueue.EnqueueAsync(() =>
                             {
-                                collection.Add(new IndexedFileInfo() { Name = line.Name, Path = line.Path, Icon = line.Icon });
+                                collection.Add(new IndexedFileInfo() { Name = line.Name, Path = line.Path, Type = line.Type });
                             });
                         }
                     }
@@ -234,8 +266,18 @@ namespace IndexerTestWASDK
                     }
                     try
                     {
-                        StorageFile file = await StorageFile.GetFileFromPathAsync(line.Path);
-                        var icon = await file.GetThumbnailAsync(ThumbnailMode.ListView);
+                        StorageItemThumbnail icon = null;
+                        if (line.Type == "File")
+                        {
+                            StorageFile file = await StorageFile.GetFileFromPathAsync(line.Path);
+                            icon = await file.GetThumbnailAsync(ThumbnailMode.ListView);
+                        }
+                        else
+                        {
+                            StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(line.Path);
+                            icon = await folder.GetThumbnailAsync(ThumbnailMode.ListView);
+                        }
+
                         DispatcherQueue.TryEnqueue(() =>
                         {
                             try
@@ -403,6 +445,123 @@ namespace IndexerTestWASDK
             foreach (var drive in DrivesList.SelectedItems)
             {
                 SelectedFolders.Add(drive as string);
+            }
+        }
+
+        private static T FindParent<T>(DependencyObject dependencyObject) where T : DependencyObject
+        {
+            var parent = VisualTreeHelper.GetParent(dependencyObject);
+
+            if (parent == null) return null;
+
+            var parentT = parent as T;
+            return parentT ?? FindParent<T>(parent);
+        }
+
+        private async void OpenClick(object o, RoutedEventArgs args)
+        {
+            try
+            {
+
+                var file = await StorageFile.GetFileFromPathAsync(RightClickedItem.Path);
+
+                if (file != null)
+                {
+                    // Launch the retrieved file
+                    var success = await Windows.System.Launcher.LaunchFileAsync(file);
+
+                    if (!success)
+                    {
+                        var folder = await StorageFolder.GetFolderFromPathAsync(RightClickedItem.Path);
+                        Windows.System.Launcher.LaunchFolderAsync(folder);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                try
+                {
+                    var folder = await StorageFolder.GetFolderFromPathAsync(RightClickedItem.Path);
+                    Windows.System.Launcher.LaunchFolderAsync(folder);
+                }
+                catch (Exception)
+                {
+
+                }
+            }
+        }
+
+        private async void OpenLocationClick(object o, RoutedEventArgs args)
+        {
+            try
+            {
+                var file = await StorageFile.GetFileFromPathAsync(RightClickedItem.Path);
+                var folder = await file.GetParentAsync();
+                Windows.System.Launcher.LaunchFolderAsync(folder);
+            }
+            catch (Exception)
+            {
+
+            }
+        }
+
+        private async void CopyFileClick(object o, RoutedEventArgs args)
+        {
+            try
+            {
+                var file = await StorageFile.GetFileFromPathAsync(RightClickedItem.Path);
+                IReadOnlyList<IStorageItem> item = new List<IStorageItem>() { file };
+                DataPackage dataPackage = new DataPackage();
+                dataPackage.SetStorageItems(item);
+                dataPackage.RequestedOperation = DataPackageOperation.Copy;
+                Clipboard.SetContent(dataPackage);
+            }
+            catch (Exception)
+            {
+
+            }
+        }
+
+        private void SearchListView_OnRightTapped(object sender, RightTappedRoutedEventArgs e)
+        {
+            try
+            {
+                ListViewItemPresenter lvi = e.OriginalSource as ListViewItemPresenter;
+                if (lvi == null)
+                    lvi = FindParent<ListViewItemPresenter>(e.OriginalSource as DependencyObject);
+                
+                var item = (IndexedFileInfo) lvi.DataContext;
+                RightClickedItem = item;
+
+                var menu = new MenuFlyout();
+                if (item.Type == "File")
+                {
+                    var item1 = new MenuFlyoutItem();
+                    item1.Text = "Open";
+                    item1.Click += OpenClick;
+                    menu.Items.Add(item1);
+                    var item2 = new MenuFlyoutItem();
+                    item2.Text = "Open File Location";
+                    item2.Click += OpenLocationClick;
+                    menu.Items.Add(item2);
+                    var item3 = new MenuFlyoutItem();
+                    item3.Text = "Copy";
+                    item3.Click += CopyFileClick;
+                    menu.Items.Add(item3);
+                }
+                else
+                {
+                    var item1 = new MenuFlyoutItem();
+                    item1.Text = "Open";
+                    item1.Click += OpenClick;
+                    menu.Items.Add(item1);
+                }
+
+                menu.ShowAt(SearchListView, e.GetPosition(SearchListView));
+            }
+            catch (Exception)
+            {
+
             }
         }
     }

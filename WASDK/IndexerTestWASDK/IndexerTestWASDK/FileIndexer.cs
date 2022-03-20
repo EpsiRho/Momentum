@@ -126,7 +126,7 @@ namespace IndexerTestWASDK
                 {
                     string name = file.Split('\\').Last().ToLower();
                     var list = new List<IndexedFileInfo>();
-                    list.Add(new IndexedFileInfo() { Name = name, Icon = "", Path = file });
+                    list.Add(new IndexedFileInfo() { Name = name, Type = "File", Path = file });
                     if (dictionary.ContainsKey(name))
                     {
                         foreach (var s in list)
@@ -156,10 +156,10 @@ namespace IndexerTestWASDK
                 }
                 string foldername = path.Split('\\').Last().ToLower();
                 var flist = new List<IndexedFileInfo>();
-                flist.Add(new IndexedFileInfo() { Name = foldername, Icon = "", Path = path });
+                flist.Add(new IndexedFileInfo() { Name = foldername, Type = "Folder", Path = path });
                 if (dictionary.ContainsKey(foldername))
                 {
-                    dictionary[foldername].Add(new IndexedFileInfo() { Name = foldername, Icon = "", Path = path });
+                    dictionary[foldername].Add(new IndexedFileInfo() { Name = foldername, Type = "Folder", Path = path });
                 }
                 else
                 {
@@ -199,7 +199,7 @@ namespace IndexerTestWASDK
                     writer.WritePropertyName("Path");
                     writer.WriteValue(file.Path);
                     writer.WritePropertyName("Icon");
-                    writer.WriteValue(file.Icon);
+                    writer.WriteValue(file.Type);
                     writer.WriteEndObject();
                 }
                 writer.WriteEndArray();
@@ -250,17 +250,17 @@ namespace IndexerTestWASDK
                             string path = reader.Value.ToString();
                             reader.Read();
                             reader.Read();
-                            string icon = reader.Value.ToString();
+                            string type = reader.Value.ToString();
                             reader.Read();
                             reader.Read();
                             if (Files.ContainsKey(name))
                             {
-                                Files[name].Add(new IndexedFileInfo() { Name = name, Path = path, Icon=icon });
+                                Files[name].Add(new IndexedFileInfo() { Name = name, Path = path, Type= type });
                             }
                             else
                             {
                                 var lst = new List<IndexedFileInfo>();
-                                lst.Add(new IndexedFileInfo() { Name = name, Path = path, Icon = icon });
+                                lst.Add(new IndexedFileInfo() { Name = name, Path = path, Type = type });
                                 Files.TryAdd(name, lst);
                             }
                             if (reader.TokenType == JsonToken.EndArray)

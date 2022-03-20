@@ -20,7 +20,7 @@ namespace IndexerTestWASDK
         }
         public string Name { get; set; }
         public string Path { get; set; }
-        public string Icon { get; set; }
+        public string Type { get; set; }
         private ImageSource image;
 
         public ImageSource Image

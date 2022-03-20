@@ -28,11 +28,15 @@
         <Grid x:Name="AppTitleBar" 
               VerticalAlignment="Top"
               Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
-              Height="28"
-              Margin="0,0,20,0">
+              Height="30"
+              Margin="0,0,0,0">
+            <TextBlock Text="Momentum"
+                       VerticalAlignment="Center"
+                       Style="{StaticResource CaptionTextBlockStyle}"
+                       Margin="15,0,0,0"/>
         </Grid>
 
-        <Grid VerticalAlignment="Stretch" Margin="0,20,0,0">
+        <Grid VerticalAlignment="Stretch" Margin="0,30,0,0">
 
             <TextBox x:Name="SearchBox"
                      VerticalAlignment="Top"
@@ -47,12 +51,14 @@
             </Button>
             <Border Background="{ThemeResource SystemChromeAltHighColor}"
                     CornerRadius="10,10,0,0"
-                    Margin="0,50,0,0"
+                    Margin="0,60,0,0"
                     Padding="10">
                 <ListView x:Name="SearchListView"
                           ItemClick="SearchListView_OnItemClick"
                           IsItemClickEnabled="True"
                           SelectionMode="None"
+                          IsRightTapEnabled="True"
+                          RightTapped="SearchListView_OnRightTapped"
                           ItemsSource="{x:Bind collection}">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="local:IndexedFileInfo">
