@@ -1,42 +1,86 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.UI.Dispatching;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.Storage;
 
 namespace IndexerTestWASDK
 {
-    public static class FileIndexer
+    public class FileIndexer : INotifyPropertyChanged
     {
-        public static int IndexedFiles;
-        public static int IndexedFolders;
-        public static int FolderErrors;
-        public static int CurrentIndent;
-        public static string Message;
-        public static bool NeedsDisplay;
-        public static Stopwatch Watch;
+        public bool NeedsDisplay;
+        private double progress;
+        public double Progress
+        {
+            get { return progress; }
+            set
+            {
+                if (value != progress)
+                {
+                    progress = value;
+                    NotifyPropertyChanged(nameof(Progress));
+                }
+            }
+        }
+        private bool isIndexing;
+        public bool IsIndexing
+        {
+            get { return isIndexing; }
+            set
+            {
+                if (value != isIndexing)
+                {
+                    isIndexing = value;
+                    NotifyPropertyChanged(nameof(IsIndexing));
+                }
+            }
+        }
+        public string Name { get; set; }
+        public double Maximum { get; set; }
         public static ConcurrentDictionary<string, List<IndexedFileInfo>> Files;
         public static bool IsFullyLoaded;
-        public static async void IndexFiles(object path)
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void NotifyPropertyChanged([CallerMemberName] String propertyName = "")
         {
-            string p = path as string;
-            NeedsDisplay = true;
-            Message = "Indexing Files";
-            var dictionary = await SearchDirectory(p);
-            Message = "Saving to File";
-            SaveIndexesToFile(dictionary);
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public async void IndexFiles(object q)
+        {
+            DispatcherQueue queue = q as DispatcherQueue;
+            var dictionary = await SearchDirectory(queue, Name);
+            foreach (var item in dictionary)
+            {
+                bool x = Files.TryAdd(item.Key, item.Value);
+                if (!x)
+                {
+                    foreach (var file in item.Value)
+                    {
+                        Files[item.Key].Add(file);
+                    }
+                }
+            }
+            queue.TryEnqueue(DispatcherQueuePriority.Low ,() =>
+            {
+                IsIndexing = false;
+                Progress = 1;
+            });
             NeedsDisplay = false;
         }
 
-        private static async Task<Dictionary<string, List<IndexedFileInfo>>> SearchDirectory(string path)
+        private async Task<Dictionary<string, List<IndexedFileInfo>>> SearchDirectory(DispatcherQueue queue, string path)
         {
-            //Message = "Searching dir";
-            var dictionary = new Dictionary<string, List<IndexedFileInfo>>();
+            var dictionary = new Dictionary<string, List<IndexedFileInfo>>(); 
             try
             {
                 var dirs = Directory.GetDirectories(path);
@@ -44,71 +88,93 @@ namespace IndexerTestWASDK
                 {
                     foreach (var dir in dirs)
                     {
-                        CurrentIndent++;
-                        var ret = await SearchDirectory(dir);
-                        CurrentIndent--;
+                        var ret = await SearchDirectory(queue, dir);
                         foreach (var f in ret)
                         {
-                            //Message = "Indexing Files";
                             if (dictionary.ContainsKey(f.Key))
                             {
                                 foreach (var s in f.Value)
                                 {
-                                    dictionary[f.Key].Add(s);
+                                    try
+                                    {
+                                        dictionary[f.Key].Add(s);
+
+                                    }
+                                    catch (Exception)
+                                    {
+
+                                    }
                                 }
                             }
                             else
                             {
-                                dictionary.Add(f.Key, new List<IndexedFileInfo>(f.Value));
+                                    try
+                                    {
+                                        dictionary.Add(f.Key, new List<IndexedFileInfo>(f.Value));
+                                    }
+                                    catch (Exception)
+                                    {
+
+                                    }
                             }
-                            IndexedFiles++;
                         }
                     }
                 }
 
                 var files = Directory.GetFiles(path);
-                //Message = "Indexing Files";
                 foreach (var file in files)
                 {
                     string name = file.Split('\\').Last().ToLower();
                     var list = new List<IndexedFileInfo>();
-                    list.Add(new IndexedFileInfo() { Icon = "", Path = file });
+                    list.Add(new IndexedFileInfo() { Name = name, Icon = "", Path = file });
                     if (dictionary.ContainsKey(name))
                     {
                         foreach (var s in list)
                         {
-                            dictionary[name].Add(s);
+                            try
+                            {
+                                dictionary[name].Add(s);
+                            }
+                            catch (Exception)
+                            {
+
+                            }
                         }
                     }
                     else
                     {
-                        dictionary.Add(name, list);
+                            try
+                            {
+                                dictionary.Add(name, new List<IndexedFileInfo>(list));
+                            }
+                            catch (Exception)
+                            {
+
+                            }
                     }
-                    IndexedFiles++;
+
                 }
                 string foldername = path.Split('\\').Last().ToLower();
                 var flist = new List<IndexedFileInfo>();
-                flist.Add(new IndexedFileInfo() { Icon = "", Path = path });
-                IndexedFolders++;
+                flist.Add(new IndexedFileInfo() { Name = foldername, Icon = "", Path = path });
                 if (dictionary.ContainsKey(foldername))
                 {
-                    dictionary[foldername].Add(new IndexedFileInfo() { Icon = "", Path = path });
+                    dictionary[foldername].Add(new IndexedFileInfo() { Name = foldername, Icon = "", Path = path });
                 }
                 else
                 {
                     dictionary.Add(foldername, flist);
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                FolderErrors++;
-                return new Dictionary<string, List<IndexedFileInfo>>();
+
             }
 
             return dictionary;
         }
 
-        private static void SaveIndexesToFile(Dictionary<string, List<IndexedFileInfo>> dictionary)
+        public static void SaveIndexesToFile()
         {
             string path = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             string[] dirs = Directory.GetDirectories(path);
@@ -121,10 +187,8 @@ namespace IndexerTestWASDK
             JsonTextWriter writer = new JsonTextWriter(sw);
             writer.Formatting = Formatting.Indented;
             writer.WriteStartObject();
-            Files = new ConcurrentDictionary<string, List<IndexedFileInfo>>();
-            foreach (var item in dictionary)
+            foreach (var item in Files)
             {
-                Files.TryAdd(item.Key, item.Value);
                 writer.WritePropertyName(item.Key);
                 writer.WriteStartArray();
                 foreach (var file in item.Value)
@@ -145,8 +209,6 @@ namespace IndexerTestWASDK
             
             writer.Flush();
             writer.Close();
-
-            //File.WriteAllText($"C:\\Users\\jhset\\Desktop\\IndexReal.json", text);
 
         }
 

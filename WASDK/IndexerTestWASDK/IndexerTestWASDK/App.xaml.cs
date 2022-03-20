@@ -15,9 +15,6 @@ using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
-using Microsoft.AppCenter;
-using Microsoft.AppCenter.Analytics;
-using Microsoft.AppCenter.Crashes;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -36,19 +33,6 @@ namespace IndexerTestWASDK
         public App()
         {
             this.InitializeComponent();
-            AppCenter.Start("e0925050-cec8-458c-84f2-2e5766874445",
-                   typeof(Analytics), typeof(Crashes));
-            Crashes.NotifyUserConfirmation(UserConfirmation.AlwaysSend);
-            Crashes.SetEnabledAsync(true);
-            OnLoad();
-        }
-        private async void OnLoad()
-        {
-            bool didAppCrash = await Crashes.HasCrashedInLastSessionAsync();
-            if (didAppCrash)
-            {
-                ErrorReport crashReport = await Crashes.GetLastSessionCrashReportAsync();
-            }
         }
 
         /// <summary>
