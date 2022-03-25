@@ -83,46 +83,41 @@ namespace IndexerTestWASDK
             var dictionary = new Dictionary<string, List<IndexedFileInfo>>(); 
             try
             {
-                var dirs = Directory.GetDirectories(path);
-                if (dirs.Length > 0)
+                foreach (var dir in Directory.EnumerateDirectories(path))
                 {
-                    foreach (var dir in dirs)
+                    var ret = await SearchDirectory(queue, dir);
+                    foreach (var f in ret)
                     {
-                        var ret = await SearchDirectory(queue, dir);
-                        foreach (var f in ret)
+                        if (dictionary.ContainsKey(f.Key))
                         {
-                            if (dictionary.ContainsKey(f.Key))
+                            foreach (var s in f.Value)
                             {
-                                foreach (var s in f.Value)
+                                try
                                 {
-                                    try
-                                    {
-                                        dictionary[f.Key].Add(s);
+                                    dictionary[f.Key].Add(s);
 
-                                    }
-                                    catch (Exception)
-                                    {
+                                }
+                                catch (Exception)
+                                {
 
-                                    }
                                 }
                             }
-                            else
-                            {
-                                    try
-                                    {
-                                        dictionary.Add(f.Key, new List<IndexedFileInfo>(f.Value));
-                                    }
-                                    catch (Exception)
-                                    {
+                        }
+                        else
+                        {
+                                try
+                                {
+                                    dictionary.Add(f.Key, new List<IndexedFileInfo>(f.Value));
+                                }
+                                catch (Exception)
+                                {
 
-                                    }
-                            }
+                                }
                         }
                     }
                 }
 
-                var files = Directory.GetFiles(path);
-                foreach (var file in files)
+                foreach (var file in Directory.EnumerateFiles(path))
                 {
                     
                     string name = Path.GetFileName(file).ToLower();
