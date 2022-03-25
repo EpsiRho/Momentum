@@ -267,7 +267,7 @@ namespace IndexerTestWASDK
                     try
                     {
                         StorageItemThumbnail icon = null;
-                        if (line.Type == "File")
+                        if (line.Type == IconType.File)
                         {
                             StorageFile file = await StorageFile.GetFileFromPathAsync(line.Path);
                             icon = await file.GetThumbnailAsync(ThumbnailMode.ListView);
@@ -534,7 +534,7 @@ namespace IndexerTestWASDK
                 RightClickedItem = item;
 
                 var menu = new MenuFlyout();
-                if (item.Type == "File")
+                if (item.Type == IconType.File)
                 {
                     var item1 = new MenuFlyoutItem();
                     item1.Text = "Open";

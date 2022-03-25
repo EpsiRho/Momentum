@@ -10,6 +10,12 @@ using Microsoft.UI.Xaml.Media;
 
 namespace IndexerTestWASDK
 {
+    public enum IconType : byte
+    {
+        File = 0,
+        Folder = 1
+    }
+
     public class IndexedFileInfo : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
@@ -20,7 +26,7 @@ namespace IndexerTestWASDK
         }
         public string Name { get; set; }
         public string Path { get; set; }
-        public string Type { get; set; }
+        public IconType Type { get; set; }
         private ImageSource image;
 
         public ImageSource Image

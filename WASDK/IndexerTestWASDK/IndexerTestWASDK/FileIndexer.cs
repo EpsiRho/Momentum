@@ -14,6 +14,7 @@ using Windows.Storage;
 
 namespace IndexerTestWASDK
 {
+
     public class FileIndexer : INotifyPropertyChanged
     {
         public bool NeedsDisplay;
@@ -122,7 +123,7 @@ namespace IndexerTestWASDK
                     
                     string name = Path.GetFileName(file).ToLower();
                     var list = new List<IndexedFileInfo>();
-                    list.Add(new IndexedFileInfo() { Name = name, Type = "File", Path = file });
+                    list.Add(new IndexedFileInfo() { Name = name, Type = IconType.File, Path = file });
                     if (dictionary.ContainsKey(name))
                     {
                         foreach (var s in list)
@@ -152,10 +153,10 @@ namespace IndexerTestWASDK
                 }
                 string foldername = Path.GetDirectoryName(path).ToLower();
                 var flist = new List<IndexedFileInfo>();
-                flist.Add(new IndexedFileInfo() { Name = foldername, Type = "Folder", Path = path });
+                flist.Add(new IndexedFileInfo() { Name = foldername, Type = IconType.Folder, Path = path });
                 if (dictionary.ContainsKey(foldername))
                 {
-                    dictionary[foldername].Add(new IndexedFileInfo() { Name = foldername, Type = "Folder", Path = path });
+                    dictionary[foldername].Add(new IndexedFileInfo() { Name = foldername, Type = IconType.Folder, Path = path });
                 }
                 else
                 {
@@ -246,12 +247,12 @@ namespace IndexerTestWASDK
                             string path = reader.Value.ToString();
                             reader.Read();
                             reader.Read();
-                            string type = reader.Value.ToString();
+                            IconType type = (IconType)int.Parse(reader.Value.ToString());
                             reader.Read();
                             reader.Read();
                             if (Files.ContainsKey(name))
                             {
-                                Files[name].Add(new IndexedFileInfo() { Name = name, Path = path, Type= type });
+                                Files[name].Add(new IndexedFileInfo() { Name = name, Path = path, Type = type });
                             }
                             else
                             {
