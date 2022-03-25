@@ -124,7 +124,8 @@ namespace IndexerTestWASDK
                 var files = Directory.GetFiles(path);
                 foreach (var file in files)
                 {
-                    string name = file.Split('\\').Last().ToLower();
+                    
+                    string name = Path.GetFileName(file).ToLower();
                     var list = new List<IndexedFileInfo>();
                     list.Add(new IndexedFileInfo() { Name = name, Type = "File", Path = file });
                     if (dictionary.ContainsKey(name))
@@ -154,7 +155,7 @@ namespace IndexerTestWASDK
                     }
 
                 }
-                string foldername = path.Split('\\').Last().ToLower();
+                string foldername = Path.GetDirectoryName(path).ToLower();
                 var flist = new List<IndexedFileInfo>();
                 flist.Add(new IndexedFileInfo() { Name = foldername, Type = "Folder", Path = path });
                 if (dictionary.ContainsKey(foldername))
