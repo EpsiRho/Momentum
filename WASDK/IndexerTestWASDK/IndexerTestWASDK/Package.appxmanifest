@@ -4,16 +4,17 @@
   xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap rescap">
+  xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
+  IgnorableNamespaces="uap rescap mp">
 
   <Identity
-    Name="6aabd017-443c-42e6-9bfa-196717c3a691"
-    Publisher="CN=jhset"
+    Name="63850EpsiRho.MomentumFileSearch"
+    Publisher="CN=8573DDA1-3882-41F4-801F-A6209429DB0F"
     Version="1.0.0.0" />
 
   <Properties>
-    <DisplayName>Momentum</DisplayName>
-    <PublisherDisplayName>Epsi</PublisherDisplayName>
+    <DisplayName>Momentum File Search</DisplayName>
+    <PublisherDisplayName>Epsi Rho</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 
@@ -31,7 +32,7 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="Momentum"
+        DisplayName="Momentum File Search"
         Description="WinUI 3 File Indexer"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
@@ -39,10 +40,26 @@
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
         <uap:SplashScreen Image="Assets\SplashScreen.png" />
       </uap:VisualElements>
+      <Extensions>
+        <Extension Category="windows.backgroundTasks" EntryPoint="IndexerTestWASDK.BackgroundIndexer">
+          <BackgroundTasks>
+            <Task Type="systemEvent"/>
+            <Task Type="pushNotification"/>
+          </BackgroundTasks>
+        </Extension>
+      </Extensions>
     </Application>
   </Applications>
 
   <Capabilities>
     <rescap:Capability Name="runFullTrust" />
   </Capabilities>
+	<Extensions>
+		<Extension Category="windows.activatableClass.inProcessServer">
+			<InProcessServer>
+				<Path>IndexerTestWASDK.dll</Path>
+				<ActivatableClass ActivatableClassId="IndexerTestWASDK.BackgroundIndexer" ThreadingModel="both"/>
+			</InProcessServer>
+		</Extension>
+	</Extensions>
 </Package>

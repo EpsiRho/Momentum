@@ -27,6 +27,8 @@ using CommunityToolkit.WinUI;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.Win32;
 using Windows.Storage.Streams;
+using Windows.ApplicationModel.Background;
+using Windows.ApplicationModel.Activation;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -47,6 +49,7 @@ namespace IndexerTestWASDK
         int TimeTillSearch;
         private bool NeedsStop;
         private IndexedFileInfo RightClickedItem;
+        ApplicationTrigger AppTrigger = new ApplicationTrigger();
 
         public MainWindow()
         {
@@ -63,6 +66,8 @@ namespace IndexerTestWASDK
 
         private async void OnLoad()
         {
+
+
             FileIndexer.Files = new ConcurrentDictionary<string, List<IndexedFileInfo>>();
             bool didAppCrash = await Crashes.HasCrashedInLastSessionAsync();
             if (didAppCrash)
@@ -162,7 +167,16 @@ namespace IndexerTestWASDK
                 NeedsStop = true;
                 if (TimerThread != null)
                 {
-                    while(NeedsStop){}
+                    int count = 0;
+                    while(NeedsStop)
+                    {
+                        count++;
+                        if(count == 10)
+                        {
+                            NeedsStop = false;
+                        }
+                        Thread.Sleep(100);
+                    }
                 }
                 TimerThread = new Thread(() =>
                 {
@@ -228,7 +242,7 @@ namespace IndexerTestWASDK
                 }
 
                 var list = FileIndexer.Files.Where(o => o.Key.Contains(text)).ToList();
-                for (int i = count; i < 200; i++)
+                for (int i = count; i < 100; i++)
                 {
                     if (NeedsStop)
                     {
@@ -267,15 +281,23 @@ namespace IndexerTestWASDK
                     try
                     {
                         StorageItemThumbnail icon = null;
+<<<<<<< Updated upstream
                         if (line.Type == IconType.File)
+=======
+                        FileInfo info = null;
+                        DirectoryInfo finfo = null;
+                        if (line.Type == "File")
+>>>>>>> Stashed changes
                         {
                             StorageFile file = await StorageFile.GetFileFromPathAsync(line.Path);
                             icon = await file.GetThumbnailAsync(ThumbnailMode.ListView);
+                            info = new FileInfo(line.Path);
                         }
                         else
                         {
                             StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(line.Path);
                             icon = await folder.GetThumbnailAsync(ThumbnailMode.ListView);
+                            finfo = new DirectoryInfo(line.Path);
                         }
 
                         DispatcherQueue.TryEnqueue(() =>
@@ -285,6 +307,20 @@ namespace IndexerTestWASDK
                                 var image = new BitmapImage();
                                 image.SetSource(icon);
                                 line.Image = image;
+                                if (line.Type == "File")
+                                {
+                                    line.LastAccessTime = info.LastAccessTime.ToString();
+                                    line.LastWriteTime = info.LastWriteTime.ToString();
+                                    line.CreationTime = info.CreationTime.ToString();
+                                    line.Length = info.Length / 1000000.0;
+                                }
+                                else
+                                {
+                                    line.LastAccessTime = finfo.LastAccessTime.ToString();
+                                    line.LastWriteTime = finfo.LastWriteTime.ToString();
+                                    line.CreationTime = finfo.CreationTime.ToString();
+                                    line.Length = 0;
+                                }
                             }
                             catch (Exception ex)
                             {
@@ -356,18 +392,28 @@ namespace IndexerTestWASDK
             SettingsGrid.Visibility = Visibility.Collapsed;
         }
 
-        private void SaveSettingsButton_OnClick(object sender, RoutedEventArgs e)
+        private async void SaveSettingsButton_OnClick(object sender, RoutedEventArgs e)
         {
+            var requestStatus = await BackgroundExecutionManager.RequestAccessAsync();
+            if (requestStatus != BackgroundAccessStatus.AlwaysAllowed)
+            {
+            
+                return;
+            }
             DrivesList.IsEnabled = false;
             CloseSettingsButton.IsEnabled = false;
             SaveSettingsButton.IsEnabled = false;
+            //DrivesExpander.Visibility = Visibility.Collapsed;
+            //OptionsExpander.Visibility = Visibility.Collapsed;
+            CloseSettingsButton.IsEnabled = false;
             FileIndexer.Files.Clear();
             Thread t = new Thread(IndexHandler);
             t.Start();
-            CloseSettingsButton.IsEnabled = false;
+            //DrivesExpander.Visibility = Visibility.Collapsed;
+            //OptionsExpander.Visibility = Visibility.Collapsed;
         }
 
-        private void IndexHandler()
+        private async void IndexHandler()
         {
             IndexingThreads = 0;
             var DriveList = DriveInfo.GetDrives();
@@ -429,15 +475,29 @@ namespace IndexerTestWASDK
             });
 
             FileIndexer.SaveIndexesToFile();
-            DispatcherQueue.TryEnqueue(() =>
+            DispatcherQueue.TryEnqueue(async () =>
             {
                 SettingsGrid.Visibility = Visibility.Collapsed;
                 SavingGrid.Visibility = Visibility.Collapsed;
+                //DrivesExpander.Visibility = Visibility.Visible;
+                //OptionsExpander.Visibility = Visibility.Visible;
                 DrivesList.IsEnabled = true;
                 CloseSettingsButton.IsEnabled = true;
                 SaveSettingsButton.IsEnabled = true;
+                //if(WhenOptions.SelectedIndex == 0)
+                //{
+                //
+                //}
+                //else
+                //{
+                //
+                //    Task t = new Task(BackgroundIndexer.InitWatcher);
+                //    t.Start();
+                //}
             });
         }
+
+        
 
         private void DrivesList_OnSelectionChanged(object sender, SelectionChangedEventArgs e)
         {

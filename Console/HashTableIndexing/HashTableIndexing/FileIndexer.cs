@@ -5,6 +5,8 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using System.IO.Filesystem.Ntfs;
+using System.Xml.Linq;
 
 namespace HashTableIndexing
 {
@@ -12,10 +14,12 @@ namespace HashTableIndexing
     {
         public static void IndexFiles()
         {
-            var dictionary = SearchDirectory("C:\\");
+            var dictionary = SearchDirectoryNtfs("C:\\");
             Display.Message = "Saving to File";
             Display.watch.Stop();
+
             Console.ReadLine();
+
             Display.watch.Reset();
             Display.watch.Start();
             SaveIndexesToFile(dictionary);
@@ -49,7 +53,6 @@ namespace HashTableIndexing
                             {
                                 dictionary.Add(f.Key, new List<IndexedFileInfo>(f.Value));
                             }
-                            Display.TotalIndexed++;
                         }
                     }
                 }
@@ -60,7 +63,7 @@ namespace HashTableIndexing
                 {
                     string name = file.Split("\\").Last().ToLower();
                     var list = new List<IndexedFileInfo>();
-                    list.Add(new IndexedFileInfo() { Icon = "&#xE130;", Path = file});
+                    list.Add(new IndexedFileInfo() { Path = file });
                     if (dictionary.ContainsKey(name))
                     {
                         foreach (var s in list)
@@ -76,11 +79,11 @@ namespace HashTableIndexing
                 }
                 string foldername = path.Split('\\').Last().ToLower();
                 var flist = new List<IndexedFileInfo>();
-                flist.Add(new IndexedFileInfo() { Icon = "&#xE8B7;", Path = path });
+                flist.Add(new IndexedFileInfo() { Path = path });
                 Display.IndexedFolders++;
                 if (dictionary.ContainsKey(foldername))
                 {
-                    dictionary[foldername].Add(new IndexedFileInfo() { Icon = "&#xE8B7;", Path = path });
+                    dictionary[foldername].Add(new IndexedFileInfo() { Path = path });
                 }
                 else
                 {
@@ -92,6 +95,88 @@ namespace HashTableIndexing
                 Display.TotalErrored++;
                 return new Dictionary<string, List<IndexedFileInfo>>();
             }
+
+            return dictionary;
+        }
+
+        private static Dictionary<string, List<IndexedFileInfo>> SearchDirectoryNtfs(string driveName)
+        {
+            Display.Message = "Searching dir";
+
+            var dictionary = new Dictionary<string, List<IndexedFileInfo>>();
+
+            var driveInfo = new DriveInfo(driveName);
+
+            try
+            {
+                var ntfsReader =
+                    new NtfsReader(driveInfo, RetrieveMode.Minimal);
+
+                foreach (var node in ntfsReader.EnumerateNodes(driveName))
+                {
+                    Display.Message = "Indexing";
+
+                    /* Node is a directory */
+                    if ((node.Attributes & Attributes.Directory) == Attributes.Directory)
+                    {
+                        string foldername = node.Name.ToLower();
+                        var flist = new List<IndexedFileInfo>();
+                        flist.Add(new IndexedFileInfo() { Path = node.FullName });
+                        if (dictionary.ContainsKey(foldername))
+                        {
+                            dictionary[foldername].Add(new IndexedFileInfo() { Path = node.FullName });
+                        }
+                        else
+                        {
+                            dictionary.Add(foldername, flist);
+                        }
+
+                        Display.IndexedFolders++;
+                    }
+                    /* Node is a file */
+                    else
+                    {
+                        string name = node.Name.ToLower();
+                        var list = new List<IndexedFileInfo>();
+                        list.Add(new IndexedFileInfo() { Path = node.FullName });
+                        if (dictionary.ContainsKey(name))
+                        {
+                            foreach (var s in list)
+                            {
+                                try
+                                {
+                                    dictionary[name].Add(s);
+                                }
+                                catch (Exception)
+                                {
+
+                                }
+                            }
+                        }
+                        else
+                        {
+                            try
+                            {
+                                dictionary.Add(name, new List<IndexedFileInfo>(list));
+                            }
+                            catch (Exception)
+                            {
+
+                            }
+                        }
+                    }
+
+                    Display.TotalIndexed++;
+                }
+
+                ntfsReader = null;
+            }
+            catch (Exception)
+            {
+
+            }
+
+            GC.Collect();
 
             return dictionary;
         }
@@ -112,7 +197,7 @@ namespace HashTableIndexing
 
             string text = JsonConvert.SerializeObject(dictionary, Formatting.Indented);
 
-            File.WriteAllText("C:\\Users\\jhset\\Desktop\\Index.json", text);
+            File.WriteAllText(".\\Index.json", text);
         }
 
         public static Dictionary<string, List<IndexedFileInfo>> LoadIndexesFromFile()
@@ -131,7 +216,7 @@ namespace HashTableIndexing
                 //    return (Dictionary<string, List<string>>)binaryFormatter.Deserialize(memoryStream);
                 //}
 
-                string text =File.ReadAllText("C:\\Users\\jhset\\Desktop\\Index.json");
+                string text = File.ReadAllText(".\\Index.json");
 
                 var obj = JsonConvert.DeserializeObject<Dictionary<string, List<IndexedFileInfo>>>(text);
                 return obj;

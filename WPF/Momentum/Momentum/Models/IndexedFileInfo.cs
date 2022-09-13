@@ -1,23 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
+using System.Windows.Media;
 
-namespace IndexerTestWASDK
+namespace Momentum.Models
 {
-    public enum IconType : byte
-    {
-        File = 0,
-        Folder = 1
-    }
-
-    public class IndexedFileInfo : INotifyPropertyChanged
+    public class IndexedFileInfo
     {
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -27,9 +19,6 @@ namespace IndexerTestWASDK
         }
         public string Name { get; set; }
         public string Path { get; set; }
-<<<<<<< Updated upstream
-        public IconType Type { get; set; }
-=======
         public string Type { get; set; }
         private string creationTime;
         public string CreationTime
@@ -40,7 +29,7 @@ namespace IndexerTestWASDK
                 if (value != creationTime)
                 {
                     creationTime = value;
-                    NotifyPropertyChanged(nameof(CreationTime));
+                    //NotifyPropertyChanged(nameof(CreationTime));
                 }
             }
         }
@@ -53,7 +42,7 @@ namespace IndexerTestWASDK
                 if (value != lastAccessTime)
                 {
                     lastAccessTime = value;
-                    NotifyPropertyChanged(nameof(LastAccessTime));
+                    //NotifyPropertyChanged(nameof(LastAccessTime));
                 }
             }
         }
@@ -66,7 +55,7 @@ namespace IndexerTestWASDK
                 if (value != lastWriteTime)
                 {
                     lastWriteTime = value;
-                    NotifyPropertyChanged(nameof(LastWriteTime));
+                    //NotifyPropertyChanged(nameof(LastWriteTime));
                 }
             }
         }
@@ -79,12 +68,11 @@ namespace IndexerTestWASDK
                 if (value != length)
                 {
                     length = value;
-                    NotifyPropertyChanged(nameof(Length));
+                    //NotifyPropertyChanged(nameof(Length));
                 }
             }
         }
 
->>>>>>> Stashed changes
         private ImageSource image;
 
         public ImageSource Image
@@ -95,7 +83,7 @@ namespace IndexerTestWASDK
                 if (value != image)
                 {
                     image = value;
-                    NotifyPropertyChanged(nameof(Image));
+                    //NotifyPropertyChanged(nameof(Image));
                 }
             }
         }
